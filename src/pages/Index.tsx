@@ -3,6 +3,8 @@ import HeroSection from '@/components/HeroSection';
 import FeaturesSection from '@/components/FeaturesSection';
 import FloatingIcons from '@/components/FloatingIcons';
 import Footer from '@/components/Footer';
+import UploadSection from "@/components/UploadSection";
+
 
 const Index = () => {
   return (
@@ -16,6 +18,7 @@ const Index = () => {
         <main>
           <HeroSection />
           <FeaturesSection />
+          <UploadSection /> {/* ← new functional block */}
         </main>
         <Footer />
       </div>

@@ -1,9 +1,37 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Menu, X } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Menu, X } from "lucide-react";
+
+const API_BASE = import.meta.env.VITE_API_BASE as string;
+const CALLBACK = import.meta.env.VITE_CALLBACK_URL as string;
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [who, setWho] = useState<{ authenticated: boolean; name?: string | null }>({ authenticated: false });
+
+  // Ask backend who we are (uses next-auth cookie on backend domain)
+  useEffect(() => {
+    const run = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/whoami`, {
+          credentials: "include", // VERY IMPORTANT
+        });
+        const json = await res.json();
+        setWho(json);
+      } catch {
+        setWho({ authenticated: false });
+      }
+    };
+    run();
+  }, []);
+
+  const handleLogin = () => {
+    window.location.href = `${API_BASE}/api/auth/signin/spotify?callbackUrl=${encodeURIComponent(CALLBACK)}`;
+  };
+
+  const handleLogout = () => {
+    window.location.href = `${API_BASE}/api/auth/signout?callbackUrl=${encodeURIComponent(CALLBACK)}`;
+  };
 
   return (
     <header className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
@@ -22,9 +50,17 @@ const Header = () => {
             <a href="#home" className="nav-link">Home</a>
             <a href="#upload" className="nav-link">Upload</a>
             <a href="#about" className="nav-link">About</a>
-            <Button className="btn-secondary">
-              Login with Spotify
-            </Button>
+
+            {!who.authenticated ? (
+              <Button className="btn-secondary" onClick={handleLogin}>
+                Login with Spotify
+              </Button>
+            ) : (
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-muted-foreground">Logged in as <strong>{who.name ?? "Spotify user"}</strong></span>
+                <Button variant="outline" onClick={handleLogout}>Logout</Button>
+              </div>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -43,9 +79,16 @@ const Header = () => {
               <a href="#home" className="nav-link">Home</a>
               <a href="#upload" className="nav-link">Upload</a>
               <a href="#about" className="nav-link">About</a>
-              <Button className="btn-secondary w-full">
-                Login with Spotify
-              </Button>
+
+              {!who.authenticated ? (
+                <Button className="btn-secondary w-full" onClick={handleLogin}>
+                  Login with Spotify
+                </Button>
+              ) : (
+                <Button variant="outline" className="w-full" onClick={handleLogout}>
+                  Logout
+                </Button>
+              )}
             </div>
           </div>
         )}
