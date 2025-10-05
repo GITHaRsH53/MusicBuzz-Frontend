@@ -2,27 +2,39 @@
 // import { Button } from "@/components/ui/button";
 // import { Menu, X } from "lucide-react";
 
-// const API_BASE = import.meta.env.VITE_API_BASE as string;
-// const CALLBACK = import.meta.env.VITE_CALLBACK_URL as string;
+// const API_BASE = import.meta.env.VITE_API_BASE as string;          // e.g. https://musicbuzz-sigma.vercel.app
+// const CALLBACK = import.meta.env.VITE_CALLBACK_URL as string;      // e.g. https://musicbuzzfrontend.vercel.app
+
+// type WhoAmI = { authenticated: boolean; user?: { name?: string | null; email?: string | null } };
 
 // const Header = () => {
 //   const [isMenuOpen, setIsMenuOpen] = useState(false);
 //   const [who, setWho] = useState<{ authenticated: boolean; name?: string | null }>({ authenticated: false });
 
-//   // Ask backend who we are (uses next-auth cookie on backend domain)
 //   useEffect(() => {
-//     const run = async () => {
+//     const ctrl = new AbortController();
+
+//     (async () => {
 //       try {
 //         const res = await fetch(`${API_BASE}/api/whoami`, {
-//           credentials: "include", // VERY IMPORTANT
+//           method: "GET",
+//           credentials: "include",   // 🔑 send NextAuth cookies cross-site
+//           cache: "no-store",        // avoid stale cached 'false'
+//           signal: ctrl.signal,
 //         });
-//         const json = await res.json();
-//         setWho(json);
+//         const json: WhoAmI = await res.json();
+
+//         const displayName =
+//           json?.user?.name ??
+//           (json?.user?.email ? json.user.email.split("@")[0] : null);
+
+//         setWho({ authenticated: !!json?.authenticated, name: displayName });
 //       } catch {
 //         setWho({ authenticated: false });
 //       }
-//     };
-//     run();
+//     })();
+
+//     return () => ctrl.abort();
 //   }, []);
 
 //   const handleLogin = () => {
@@ -57,7 +69,9 @@
 //               </Button>
 //             ) : (
 //               <div className="flex items-center gap-3">
-//                 <span className="text-sm text-muted-foreground">Logged in as <strong>{who.name ?? "Spotify user"}</strong></span>
+//                 <span className="text-sm text-muted-foreground">
+//                   Logged in as <strong>{who.name ?? "Spotify user"}</strong>
+//                 </span>
 //                 <Button variant="outline" onClick={handleLogout}>Logout</Button>
 //               </div>
 //             )}
@@ -99,28 +113,30 @@
 
 // export default Header;
 
+
+
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
-
-const API_BASE = import.meta.env.VITE_API_BASE as string;          // e.g. https://musicbuzz-sigma.vercel.app
-const CALLBACK = import.meta.env.VITE_CALLBACK_URL as string;      // e.g. https://musicbuzzfrontend.vercel.app
 
 type WhoAmI = { authenticated: boolean; user?: { name?: string | null; email?: string | null } };
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [who, setWho] = useState<{ authenticated: boolean; name?: string | null }>({ authenticated: false });
+  const [who, setWho] = useState<{ authenticated: boolean; name?: string | null }>({
+    authenticated: false,
+  });
 
+  // Ask the backend who we are (cookie stays same-origin thanks to rewrites)
   useEffect(() => {
     const ctrl = new AbortController();
-
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/whoami`, {
+        const res = await fetch("/api/whoami", {
           method: "GET",
-          credentials: "include",   // 🔑 send NextAuth cookies cross-site
-          cache: "no-store",        // avoid stale cached 'false'
+          credentials: "include",
+          cache: "no-store",
           signal: ctrl.signal,
         });
         const json: WhoAmI = await res.json();
@@ -134,16 +150,17 @@ const Header = () => {
         setWho({ authenticated: false });
       }
     })();
-
     return () => ctrl.abort();
   }, []);
 
+  const CALLBACK = window.location.origin; // send users back to this site
+
   const handleLogin = () => {
-    window.location.href = `${API_BASE}/api/auth/signin/spotify?callbackUrl=${encodeURIComponent(CALLBACK)}`;
+    window.location.href = `/api/auth/signin/spotify?callbackUrl=${encodeURIComponent(CALLBACK)}`;
   };
 
   const handleLogout = () => {
-    window.location.href = `${API_BASE}/api/auth/signout?callbackUrl=${encodeURIComponent(CALLBACK)}`;
+    window.location.href = `/api/auth/signout?callbackUrl=${encodeURIComponent(CALLBACK)}`;
   };
 
   return (
